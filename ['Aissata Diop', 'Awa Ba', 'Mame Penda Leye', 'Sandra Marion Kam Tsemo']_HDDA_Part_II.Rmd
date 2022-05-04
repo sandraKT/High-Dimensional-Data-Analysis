@@ -1,0 +1,225 @@
+---
+title: "Exam_HDDA_Aimssn_2021 (PART II) : Team work"
+author: "['Aissata Diop', 'Awa Ba', 'Mame Penda Leye', 'Sandra Marion Kam Tsemo']"
+date: "25/12/2021"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## PART II-1 : PCA
+                                          
+The units of the variables do not vary in the same range of values. In this case we will use a standard PCA
+
+Packages :
+library("FactoMineR")
+library("factoextra")
+library("corrplot")
+```{r include = FALSE, echo=FALSE}
+library("FactoMineR")
+library("factoextra")
+library("tinytex") 
+```
+
+## Importing data from csv file
+```{r}
+dataset <- read.csv("C:/Users/LONOVO/Desktop/HDDA/HDDAdataexam21.csv", dec = ",")
+head(dataset)
+```
+
+## PCA  function
+
+```{r}
+res.pca <- PCA(dataset, graph = FALSE, scale.unit= TRUE)
+res.pca
+```
+## Eigen values: Choice of axes
+
+```{r}
+eig.val=res.pca$eig
+eig.val
+```
+
+Minimum inertia rule: We select the first axes in order to reach a given % of explained inertia
+the first four principal axes explain a sufficient part of the inertia (94%).
+We Keep the first four principal axes 
+
+## The variables
+```{r}
+resvar=res.pca$var  ##eigenvectors multiply by squareroot of the eiguenvalue
+resvar
+```
+
+```{r}
+var <- get_pca_var(res.pca)
+```
+
+
+
+```{r}
+library("corrplot")
+```
+
+## Cos2:quality of representation of variables
+```{r}
+head(var$cos2)
+corrplot(var$cos2, is.corr=FALSE)
+```
+According to the results, the variables that are close to the correlation circle are 'SocialNetworks' and 'Phone' which have respectively 0.85 and 0.84 over 1.
+
+## Contributions to the principal components
+
+```{r}
+head(var$contrib)
+corrplot(var$contrib, is.corr=FALSE)    
+```
+Phone' and 'SocialNetworks' contribute the most for dimension 1 and 5 while 'Happiness', 'Walk' and 'InstagramRatio' contribute the most for dimensions 2,3 and 4
+
+## Representation of the variables according to the principal components
+
+```{r}
+fviz_pca_var(res.pca, col.var = "black",repel = TRUE)
+```
+
+
+According to the graph with axis 1 and axis 2, Phone' and 'SocialNetworks' are positively correlated and well represented with respect to axis 1 while 'Happiness' and 'Walk' are negatively correlated.In the other part, we have 'Happiness' and 'Walk' which are positively correlated with respect to axis 2 while 'InstagramRatio' are negatively correlated.
+## The inviduals
+
+```{r echo=FALSE}
+ind <- get_pca_ind(res.pca)
+
+```
+
+## Quality of representation
+```{r}
+fviz_pca_ind (res.pca, col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE 
+             )
+```
+```{r}
+fviz_pca_biplot(res.pca, repel = TRUE)
+```
+
+This graph shows us extrem individuals and many grouped individuals who are close to the center because they are similar
+
+## Contribution on PC1 and PC2
+```{r}
+fviz_contrib(res.pca, choice = "ind", axes = 1:2,top = 15)
+```
+All the individuals represented on the abcissa axis have a contribution higher than the average 
+
+## Variables and individuals with largest quality of representation
+
+```{r include=TRUE,echo=FALSE}
+fviz_pca_biplot(res.pca, select.ind = list(contrib = 20), select.var = list(contrib = 5),ggtheme = theme_minimal())
+```
+
+Concerning the individuals, the closer an individual is to the positive abcissa of dimension 1, the more he tends to connect on a social network through his smartphone
+The closer an individual is to the positive abcissa of dimension 2 the more he is in a good mood and tends to walk.
+
+
+## PART II-2 : MULTIPLE LINEAR REGRESSION
+
+
+```{r echo=FALSE}
+library(tidyverse)
+dataset<-as_tibble(dataset)
+head(dataset) 
+```
+
+1) Computing variables LowInstagram and HighInstagram
+
+```{r}
+dataset$LowInstagram <- ifelse(dataset$InstagramRatio < 0.5, 1, 0)
+dataset$HighInstagram <- ifelse(2<dataset$InstagramRatio, 1, 0)
+```
+
+
+3) Is the regression model in 1) useful in predicting 'Phone' time?
+
+```{r}
+reg1 <- lm(Phone~SocialNetworks+Happiness+Walk+LowInstagram+HighInstagram,data=dataset)
+summary(reg1)
+```
+
+In our case, it can be seen that p-value of the F-statistic is \< 2.2e-16, which is highly significant. This means that, at least, one of the predictor variables is significantly related to the outcome variable.
+
+4) Does 'SocialNetworks' significantly influence 'Phone'?
+
+Yes, because when 'SocilaNetworks' increases by one unit, the number of minutes an AIMS student spends watching the screen of his/her phone per day increases by 0.9 units.
+
+5) Does 'Happiness' help reduce the time AIM students spend on their phone?
+
+Yes, because The time AIM students spend on their phone, 'Phone' decreases by 7.3 units when 'Happiness' increases by one unit.
+
+6)
+## Prediction for student A
+
+```{r}
+baseA <- data.frame("SocialNetworks"= c(120),"Happiness" = c(4),"Walk"= c(15),"InstagramRatio" = c(2.1))
+baseA=as_tibble(baseA)
+baseA$LowInstagram <- ifelse(baseA$InstagramRatio < 0.5, 1, 0)
+baseA$HighInstagram <- ifelse(2<baseA$InstagramRatio, 1, 0)
+predict(reg1, newdata=baseA)
+```
+
+## Prediction for student B
+
+```{r}
+baseB <- data.frame("SocialNetworks"= c(120),"Happiness" = c(4),"Walk"= c(15),"InstagramRatio" = c(0.4))
+baseB=as_tibble(baseB)
+baseB$LowInstagram <- ifelse(baseB$InstagramRatio < 0.5, 1, 0)
+baseB$HighInstagram <- ifelse(2<baseB$InstagramRatio, 1, 0)
+predict(reg1, newdata=baseB)
+```
+
+7) Do a backward stepwise regression until you only have significant predictors left at the 5% significance level (it means delete one by one non-significant predictors beginning by the most non-significant).
+
+```{r}
+summary(reg1)
+```
+
+Backward stepwise regression: ##Let's delete one by one non-significant predictors beginning by the most non-significant: Walk,LowInstagram,HighInstagram and Happiness
+
+```{r}
+reg_nowalk <- lm(Phone~SocialNetworks+Happiness+LowInstagram+HighInstagram,data=dataset)
+summary(reg_nowalk)
+```
+
+Lowinstagram is the most no significant.
+
+```{r}
+reg_no_linsta <- lm(Phone~SocialNetworks+Happiness+HighInstagram,data=dataset)
+summary(reg_no_linsta)
+```
+
+All the predictors are significant left at the 5% significance level ## 8)Since both models have about the same adjusted R2 , the predictors of the last model are more significant ## 9)
+
+```{r}
+
+baseC <- data.frame("SocialNetworks"= c(30),"Happiness" = c(8),"Walk"= c(2),"InstagramRatio" = c(2.1))
+baseC=as_tibble(baseC)
+baseC$LowInstagram <- ifelse(baseC$InstagramRatio < 0.5, 1, 0)
+baseC$HighInstagram <- ifelse(2<baseC$InstagramRatio, 1, 0)
+predict(reg_no_linsta, newdata=baseC)
+
+```
+
+10)
+
+```{r}
+baseD <- data.frame("SocialNetworks"= c(30),"Happiness" = c(8),"Walk"= c(2),"InstagramRatio" = c(0.4))
+baseD=as_tibble(baseD)
+baseD$LowInstagram <- ifelse(baseD$InstagramRatio < 0.5, 1, 0)
+baseD$HighInstagram <- ifelse(2<baseD$InstagramRatio, 1, 0)
+predict(reg_no_linsta, newdata=baseD)
+```
+
+
